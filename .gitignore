@@ -1,3 +1,10 @@
+# .gitignore
+
+# General secrets files (Recommended to ignore all)
+.env
+.env.mesh 
+.env.*
+
+# Existing files:
 *.auto.tfvars
-*.env
 /opt/mcp/.env
