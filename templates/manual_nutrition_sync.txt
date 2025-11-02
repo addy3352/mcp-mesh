@@ -1,0 +1,8 @@
+🥗 Nutrition Sync Refreshed ✅
+
+Calories logged so far: {calories} kcal  
+Protein: {protein_g} g (approx)
+Hydration reminder: {water_l}L left today 💧
+
+Manual sync triggered — discipline on point 🔥
+Your plan has been updated accordingly.

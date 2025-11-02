@@ -1,0 +1,9 @@
+🌅 Good Morning Aditya!
+
+✅ Garmin sync completed
+🏃‍♂️ Last Run: {distance_km} km
+❤️ RHR: {rhr_bpm} bpm
+📈 HRV: {hrv_ms} ms
+😴 Sleep: {sleep_hours} hrs
+
+Agent-Health is preparing your daily plan...

@@ -1,0 +1,53 @@
+services:
+  garmin:      { url: http://mcp-garmin:8001 }
+  nutrition:   { url: http://mcp-nutrition:8003 }
+  linkedin:    { url: http://mcp-linkedin:8005 }
+  portal:      { url: http://mcp-portal:8007 }
+  agenthealth: { url: http://mcp-agent-health:8009 }
+
+roles:
+  chatgpt-agent:  # Only logs meals into mesh
+    allow_tools:
+      - nutrition.write_meal
+      - nutrition.get_daily_summary
+      - nutrition.list_meals
+    deny_tools:
+      - linkedin.create_post
+      - garmin.*
+      - agenthealth.*
+      - portal.update_health_panel
+
+  agent-iris:     # posts to LinkedIn only
+    allow_tools:
+      - linkedin.create_post
+    deny_tools:
+      - nutrition.*
+      - garmin.*
+      - agenthealth.*
+      - portal.update_health_panel
+
+  agent-health:   # Health reasoning agent
+    allow_tools:
+      # Garmin reads
+      - garmin.get_stats
+      - garmin.get_heart_rates
+      - garmin.get_sleep_data
+      - garmin.get_all_day_stress
+      - garmin.get_hrv_data
+      - garmin.get_activities_range
+      
+      # Nutrition reads
+      - nutrition.get_daily_summary
+      
+      # Health DB writes
+      - agenthealth.save_recommendation
+      - agenthealth.notify_health
+      
+      # Sync triggers
+      - agenthealth.trigger_manual_sync
+
+      # UI update
+      - portal.update_health_panel
+    deny_tools:
+      - nutrition.write_meal
+      - linkedin.*

@@ -1,0 +1,9 @@
+🌙 Daily summary complete
+
+🏃‍♂️ Distance: {distance_km} km
+🔥 Calories Used: {calories} kcal
+❤️ RHR: {rhr_bpm} bpm
+📈 HRV: {hrv_ms} ms
+😴 Sleep: {sleep_hours} hrs
+
+Rest well. Tomorrow we rise stronger 💪

@@ -1,0 +1,8 @@
+🧠 Agent-Health Daily Recommendation
+
+Training: {training_plan}
+Nutrition: {nutrition_plan}
+Hydration Target: {hydration_l}L
+Focus: {today_focus}
+
+You win by consistency and recovery 💪🔥

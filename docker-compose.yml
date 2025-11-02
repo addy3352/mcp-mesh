@@ -1,0 +1,85 @@
+version: "3.9"
+
+services:
+  mesh-core:
+    build:
+      context: .
+      dockerfile: Dockerfile.mesh
+    container_name: mesh-core
+    restart: unless-stopped
+    env_file: /opt/mcp/.env
+    volumes:
+      - meshdata:/data
+    networks:
+      - mcpnet
+    depends_on:
+      - mcp-gateway
+
+  mcp-gateway:
+    build: ./gateway
+    container_name: mcp-gateway
+    env_file: /opt/mcp/.env
+    volumes:
+      - ./gateway/policy.yaml:/app/policy.yaml:ro
+      - meshdata:/data
+    ports:
+      - "8090:8090"
+    restart: unless-stopped
+    networks:
+      - mcpnet
+
+  mcp-garmin:
+    build: ./mcp-garmin
+    container_name: mcp-garmin
+    env_file: /opt/mcp/.env
+    restart: unless-stopped
+    networks:
+      - mcpnet
+
+  mcp-nutrition:
+    build: ./mcp-nutrition
+    container_name: mcp-nutrition
+    env_file: /opt/mcp/.env
+    volumes:
+      - meshdata:/data
+    restart: unless-stopped
+    networks:
+      - mcpnet
+
+  mcp-linkedin:
+    build: ./mcp-linkedin
+    container_name: mcp-linkedin
+    env_file: /opt/mcp/.env
+    restart: unless-stopped
+    networks:
+      - mcpnet
+
+  mcp-agent-health:
+    build: ./mcp-agent-health
+    container_name: mcp-agent-health
+    env_file: /opt/mcp/.env
+    volumes:
+      - meshdata:/data
+    restart: unless-stopped
+    networks:
+      - mcpnet
+
+  nginx:
+    image: nginx:latest
+    container_name: mesh-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - mcp-gateway
+    networks:
+      - mcpnet
+
+networks:
+  mcpnet:
+
+volumes:
+  meshdata:

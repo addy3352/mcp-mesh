@@ -1,0 +1,39 @@
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# System dependencies
+RUN apt-get update && apt-get install -y \
+    sqlite3 curl git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt /app/requirements.txt
+
+# Install Python deps
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy mesh source
+COPY mesh/ /app/mesh/
+COPY gateway/ /app/gateway/
+COPY db/ /app/db/
+COPY scheduler.py /app/scheduler.py
+COPY server.py /app/server.py
+
+# Expose public mesh control API
+EXPOSE 8090
+
+# Entrypoint (runs DB init + scheduler + API)
+CMD ["sh", "-c", "\
+    if [ ! -f /data/mesh.db ]; then \
+        echo 'Initializing SQLite DB...'; \
+        mkdir -p /data && \
+        sqlite3 /data/mesh.db < /app/db/schema.sql; \
+    else \
+        echo 'SQLite DB already exists'; \
+    fi; \
+    echo 'Starting MCP Mesh Gateway + Scheduler...'; \
+    uvicorn server:app --host 0.0.0.0 --port 8090 & \
+    python scheduler.py \
+"]

@@ -1,0 +1,7 @@
+🥗 Nutrition update:
+
+Calories today: {calories} kcal  
+Protein target: {protein_status}
+Hydration: {water_status}
+
+Stay fueled. Keep discipline 🔁

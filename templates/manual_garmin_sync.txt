@@ -1,0 +1,9 @@
+🔄 Health Sync Completed Manually ✅
+
+🏃‍♂️ Distance today: {distance_km} km
+❤️ RHR: {rhr_bpm} bpm
+📈 HRV: {hrv_ms} ms
+😴 Sleep logged: {sleep_hours} hrs
+
+Great call syncing manually — consistency wins 👊  
+Agent-Health will now adjust today's plan 📊
