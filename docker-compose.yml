@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.mesh
     container_name: mesh-core
     restart: unless-stopped
-    env_file: /opt/mcp/.env
+    env_file: /opt/mcp-mesh/.env.mesh
     volumes:
       - meshdata:/data
     networks:
@@ -18,7 +18,7 @@ services:
   mcp-gateway:
     build: ./gateway
     container_name: mcp-gateway
-    env_file: /opt/mcp/.env
+    env_file: /opt/mcp-mesh/.env.mesh
     volumes:
       - ./gateway/policy.yaml:/app/policy.yaml:ro
       - meshdata:/data
@@ -31,7 +31,7 @@ services:
   mcp-garmin:
     build: ./mcp-garmin
     container_name: mcp-garmin
-    env_file: /opt/mcp/.env
+    env_file: /opt/mcp-mesh/.env.mesh
     restart: unless-stopped
     networks:
       - mcpnet
@@ -39,7 +39,7 @@ services:
   mcp-nutrition:
     build: ./mcp-nutrition
     container_name: mcp-nutrition
-    env_file: /opt/mcp/.env
+    env_file: /opt/mcp-mesh/.env.mesh
     volumes:
       - meshdata:/data
     restart: unless-stopped
@@ -49,7 +49,7 @@ services:
   mcp-linkedin:
     build: ./mcp-linkedin
     container_name: mcp-linkedin
-    env_file: /opt/mcp/.env
+    env_file: /opt/mcp-mesh/.env.mesh
     restart: unless-stopped
     networks:
       - mcpnet
@@ -57,7 +57,7 @@ services:
   mcp-agent-health:
     build: ./mcp-agent-health
     container_name: mcp-agent-health
-    env_file: /opt/mcp/.env
+    env_file: /opt/mcp-mesh/.env.mesh
     volumes:
       - meshdata:/data
     restart: unless-stopped
