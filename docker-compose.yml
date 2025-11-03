@@ -15,7 +15,7 @@ services:
     depends_on:
       - mesh-gateway
 
-  mcp-gateway:
+  mesh-gateway:
     build: ./mesh-gateway
     container_name: mesh-gateway
     env_file: /opt/mcp-mesh/.env.mesh
@@ -66,7 +66,7 @@ services:
     networks:
       - mcpnet
     depends_on:
-      - mcp-gateway
+      - mesh-gateway
       - mcp-garmin
       - mcp-nutrition
 
