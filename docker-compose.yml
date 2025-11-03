@@ -56,12 +56,12 @@ services:
       - mcpnet
 
   mcp-agent-health:
-    build: ./mcp-agent-health
-    container_name: mcp-agent-health
+    build: ./mcp-agent_health
+    container_name: mcp-agent_health
     env_file: /opt/mcp-mesh/.env.mesh
     volumes:
       - meshdata:/data
-      - ./mcp-agent-health/prompts.txt:/app/prompt.txt
+      - ./mcp-agent_health/prompts.txt:/app/prompt.txt
     restart: unless-stopped
     networks:
       - mcpnet
