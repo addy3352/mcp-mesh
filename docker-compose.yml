@@ -13,11 +13,11 @@ services:
     networks:
       - mcpnet
     depends_on:
-      - mcp-gateway
+      - mesh-gateway
 
   mcp-gateway:
     build: ./mesh-gateway
-    container_name: mcp-gateway
+    container_name: mesh-gateway
     env_file: /opt/mcp-mesh/.env.mesh
     volumes:
       - ./mesh-gateway/policy.yaml:/app/policy.yaml:ro
@@ -80,7 +80,7 @@ services:
       - "80:80"
       - "443:443"
     depends_on:
-      - mcp-gateway
+      - mesh-gateway
     networks:
       - mcpnet
 
