@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy mesh source
 COPY mesh/ /app/mesh/
-COPY gateway/ /app/gateway/
+COPY mesh-gateway/ /app/mesh-gateway/
 COPY db/ /app/db/
 COPY scheduler.py /app/scheduler.py
 COPY server.py /app/server.py
