@@ -42,7 +42,7 @@ services:
     env_file: /opt/mcp-mesh/.env.mesh
     volumes:
       - meshdata:/data
-      - ./mcp-nutrition/prompts.txt:/app/prompt.txt
+      - ./mcp-nutrition/prompt.txt:/app/prompt.txt
     restart: unless-stopped
     networks:
       - mcpnet
@@ -61,7 +61,7 @@ services:
     env_file: /opt/mcp-mesh/.env.mesh
     volumes:
       - meshdata:/data
-      - ./mcp-agent_health/prompts.txt:/app/prompt.txt
+      - ./mcp-agent_health/prompt.txt:/app/prompt.txt
     restart: unless-stopped
     networks:
       - mcpnet
