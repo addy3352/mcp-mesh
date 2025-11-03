@@ -14,6 +14,6 @@ COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
-EXPOSE 8007
+EXPOSE 8008
 
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8007"]
+CMD ["bash", "-c", "uvicorn server:app --host 0.0.0.0 --port 8008 & python agent.py"]

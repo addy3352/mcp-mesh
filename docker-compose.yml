@@ -16,11 +16,11 @@ services:
       - mcp-gateway
 
   mcp-gateway:
-    build: ./gateway
+    build: ./mesh-gateway
     container_name: mcp-gateway
     env_file: /opt/mcp-mesh/.env.mesh
     volumes:
-      - ./gateway/policy.yaml:/app/policy.yaml:ro
+      - ./mesh-gateway/policy.yaml:/app/policy.yaml:ro
       - meshdata:/data
     ports:
       - "8090:8090"
@@ -42,6 +42,7 @@ services:
     env_file: /opt/mcp-mesh/.env.mesh
     volumes:
       - meshdata:/data
+      - ./mcp-nutrition/prompts.txt:/app/prompt.txt
     restart: unless-stopped
     networks:
       - mcpnet
@@ -60,9 +61,14 @@ services:
     env_file: /opt/mcp-mesh/.env.mesh
     volumes:
       - meshdata:/data
+      - ./mcp-agent-health/prompts.txt:/app/prompt.txt
     restart: unless-stopped
     networks:
       - mcpnet
+    depends_on:
+      - mcp-gateway
+      - mcp-garmin
+      - mcp-nutrition
 
   nginx:
     image: nginx:latest
