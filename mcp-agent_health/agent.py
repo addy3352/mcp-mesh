@@ -1,7 +1,7 @@
 # mcp-agent-health/agent_scheduler.py
 import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from .mcp_client import call_tool  # small wrapper you will create
+from mcp_client import call_tool  # small wrapper you will create
 
 async def sync_garmin():
     await call_tool("garmin.sync")
