@@ -1,16 +1,21 @@
-from .mesh.db import db
+from mcp_client import call_tool
 
-def compute_recommendation():
-    with db() as conn:
-        # last 7 days aggregates
-        hrv = [r["hrv_ms"] for r in conn.execute("SELECT hrv_ms FROM garmin_daily ORDER BY date DESC LIMIT 7")]
-        rhr = [r["rhr_bpm"] for r in conn.execute("SELECT rhr_bpm FROM garmin_daily ORDER BY date DESC LIMIT 7")]
-        sleep = [r["sleep_hours"] for r in conn.execute("SELECT sleep_hours FROM garmin_daily ORDER BY date DESC LIMIT 7")]
-        cal  = [r["calories"] for r in conn.execute("SELECT calories FROM calories_daily ORDER BY date DESC LIMIT 7")]
+async def compute_recommendation():
+    # Fetch data from mesh-core DB via MCP tool
+    data = await call_tool("core.get_health_summary")
 
-        latest = conn.execute("SELECT * FROM garmin_daily ORDER BY date DESC LIMIT 1").fetchone()
+    rows = data.get("result", [])
+    if not rows:
+        return {"error": "No data"}
 
-    # simple heuristic for MVP (WHOOP + Strava tone); you can swap with LLM later
+    # Extract values
+    hrv = [r["hrv"] for r in rows]
+    rhr = [r["rhr"] for r in rows]
+    sleep = [r["sleep"] for r in rows]
+    
+    latest = rows[0]
+
+    # simple heuristic (MVP WHOOP-style)
     rec_score = 80
     if len(hrv) >= 2 and hrv[0] < hrv[1]: rec_score -= 10
     if len(rhr) >= 2 and rhr[0] > rhr[1]: rec_score -= 10
@@ -18,6 +23,7 @@ def compute_recommendation():
 
     zone = "Push" if rec_score >= 80 else "Maintain" if rec_score >= 60 else "Easy"
     km = "6–9 km Z2" if zone != "Push" else "7–10 km with strides"
+    
     suggestion = (
         f"Recovery {rec_score}%. {zone} day. "
         f"Run: {km}. Keep cadence even; nasal breathing. "
@@ -27,8 +33,8 @@ def compute_recommendation():
     return {
         "recovery": rec_score,
         "strain": zone,
-        "sleepHours": round(sleep[0] if sleep else 0, 2),
+        "sleepHours": round(sleep[0], 2) if sleep else None,
         "sleepNeed": 7.75,
         "advice": suggestion,
-        "latest": dict(latest) if latest else None
+        "latest": latest
     }
