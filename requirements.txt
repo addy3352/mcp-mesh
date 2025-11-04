@@ -1,31 +1,20 @@
-# Core API
-fastmcp
-fastapi
-uvicorn[standard]==0.27.1
+fastmcp==2.13.0
+fastapi>=0.115.4
+uvicorn[standard]>=0.31.1
 
-# HTTP client for calling MCP services
-httpx
+httpx>=0.28.1
+sqlalchemy>=2.0.29
+sqlite-utils>=3.36
+sqlmodel>=0.0.14
 
-# DB (SQLite) + utils
-sqlalchemy==2.0.29
-sqlite-utils==3.36
-sqlmodel==0.0.14
-
-# Scheduling (if mesh-core runs cron for now)
 apscheduler==3.10.4
 
-# Validation + settings
-pydantic==2.6.1
-pydantic-settings==2.1.0
+pydantic>=2.11.7
+pydantic-settings>=2.6.1
+python-dotenv>=1.0.1
 
-# YAML policy for gateway
-pyyaml==6.0.1
+pyyaml>=6.0.1
 
-# Environment support
-python-dotenv==1.0.1
-
-# LLM client
-openai==1.12.0
-
-# Logging utils
-rich==13.7.0
+openai>=1.12.0
+rich>=13.7.0
+requests>=2.31.0
