@@ -18,4 +18,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8008
 
 # ✅ Ensure script exists & run app + scheduler
-CMD ["bash", "-c", "uvicorn server:app --host 0.0.0.0 --port 8008 & python /app/agent.py"]
+CMD ["bash", "-c", "uvicorn server:app --host 0.0.0.0 --port 8008 "]
