@@ -1,10 +1,22 @@
 
 from fastapi import APIRouter, Depends
+from fastapi.concurrency import run_in_threadpool # CRITICAL: Import for synchronous code
 from models import MealEntry, DailySummaryRequest, MealsQuery
 from db import insert_meal, daily_summary, list_meals
 from auth import require_api_key
+from nutrition_sync import sync_nutrition_daily # Import the sync function
+from datetime import date
+
 
 router = APIRouter(dependencies=[Depends(require_api_key)])
+
+# ADDED: Endpoint for nutrition.sync tool
+@router.post("/nutrition.sync")
+async def sync_daily_data(date: str | None = None):
+    # CRITICAL FIX: Run synchronous sync_nutrition_daily in a threadpool
+    target_date = date if date else None
+    await run_in_threadpool(sync_nutrition_daily, target=target_date)
+    return {"status": "ok", "synced_date": target_date or date.today().isoformat()}
 
 @router.post("/nutrition.write_meal")
 async def write_meal(entry: MealEntry):

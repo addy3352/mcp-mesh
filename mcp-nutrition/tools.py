@@ -1,6 +1,16 @@
 
 def list_tools():
     return [
+                # ADDED: Tool for the internal scheduler/triggers to use
+        {
+            "name": "nutrition.sync",
+            "description": "Runs a full daily sync of calories/nutrition data for today.",
+            "input_schema": {
+                "type": "object",
+                "properties": { "date": {"type":"string","format":"date"} },
+                "required": []
+            }
+        },
         {
             "name": "nutrition.write_meal",
             "description": "Log a meal with calories/macros into nutrition DB",

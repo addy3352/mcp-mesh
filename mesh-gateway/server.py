@@ -9,6 +9,7 @@ import os
 
 POLICY_PATH = os.getenv("POLICY_CONFIG", "/app/policy.yaml")
 AUDIT_DB     = os.getenv("AUDIT_DB_PATH", "/data/audit.db")
+CHATGPT_SECRET_KEY = os.getenv("CHATGPT_SECRET_KEY") # Load from .env.mesh
 
 app = FastAPI(title="MCP Gateway (Governance & Audit)")
 
@@ -92,12 +93,16 @@ class ToolCall(BaseModel):
     route: str | None = None
 
 @app.post("/mesh/call")
-def call_tool(body: ToolCall, request: Request):
-    policy = load_policy()
-    client_id = request.headers.get("X-Client-Id", "unknown")
-    role      = request.headers.get("X-Client-Role", "unknown")
-    tool      = body.tool
-    args      = body.args or {}
+def call_tool(body: ToolCall, request: Request,key: str = Query(None)):  # <-- INJECT QUERY PARAM
+    if key == CHATGPT_SECRET_KEY:
+        client_id = "chatgpt-connector" 
+        role = "chatgpt-agent" # INJECT the authorized role
+    else:
+        policy = load_policy()
+        client_id = request.headers.get("X-Client-Id", "unknown")
+        role      = request.headers.get("X-Client-Role", "unknown")
+    tool = body.tool
+    args = body.args or {}
 
     if not allow_tool(policy, role, tool):
         record_audit((f"audit-{time.time_ns()}", int(time.time()), client_id, role, body.route or "", tool, json.dumps(redact(args)), "deny"))

@@ -1,6 +1,7 @@
 
 def list_tools():
     return [
+        {"name":"garmin.sync","description":"Runs a full daily sync of all metrics for today.","input_schema":{"type":"object","properties":{"date":{"type":"string","format":"date"}},"required":[]}},
         {"name":"garmin.get_stats","description":"Daily stats for a given date","input_schema":{"type":"object","properties":{"date":{"type":"string","format":"date"}},"required":["date"]}},
         {"name":"garmin.get_user_summary","description":"User summary for a given date","input_schema":{"type":"object","properties":{"date":{"type":"string","format":"date"}},"required":["date"]}},
         {"name":"garmin.get_stats_and_body","description":"Stats + body composition","input_schema":{"type":"object","properties":{"date":{"type":"string","format":"date"}},"required":["date"]}},

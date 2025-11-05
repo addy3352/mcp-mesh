@@ -3,8 +3,12 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from datetime import date, timedelta
 from utils import GarminClient
+from garmin_sync import sync_garmin_daily # Import the sync function
+
 
 router = APIRouter()
+
+
 
 async def get_client():
     client = GarminClient()
@@ -17,6 +21,14 @@ class DateBody(BaseModel):
 class DateRange(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
+
+# ADDED: Endpoint for garmin.sync tool
+@router.post("/garmin.sync")
+async def sync_daily_data(date: str | None = None):
+    # sync_garmin_daily handles date logic (defaults to today if None)
+    target_date = date if date else None
+    await sync_garmin_daily(target=target_date)
+    return {"status": "ok", "synced_date": target_date or date.today().isoformat()}
 
 @router.post("/garmin.get_stats")
 async def get_stats(body: DateBody, client: GarminClient = Depends(get_client)):
