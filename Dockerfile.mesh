@@ -16,9 +16,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy mesh source
 COPY db/ /app/db/
+COPY notify.py /app/notify.py
 COPY scheduler.py /app/scheduler.py
 COPY server.py /app/server.py
 COPY mcp_client.py /app/mcp_client.py
+COPY templates/ /app/templates/          
+# ADDED: Templates required by notify.py
+
 
 
 # Default SQLite location inside container

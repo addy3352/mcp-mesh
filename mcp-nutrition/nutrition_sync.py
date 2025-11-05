@@ -1,6 +1,6 @@
 from datetime import date
-from .mesh.db import db
-from .mesh.notify import notify
+from db import db
+from notify import notify
 
 # Implement this to read daily calories from your ChatGPT "Nutrition and Calories breakdown"
 # For MVP, return the latest value already captured by your nutrition MCP,

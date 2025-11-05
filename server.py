@@ -67,10 +67,10 @@ def core_notify_health(text: str):
 # ✅ Access Control (Core tools only accessible to Agent-Health)
 # ===================================================================
 
-app.allow("agent-health", "core_get_health_summary")
-app.allow("agent-health", "core_trigger_manual_sync") # Previously core_garmin_sync/nutrition_sync
-app.allow("agent-health", "core_save_recommendation")
-app.allow("agent-health", "core_notify_health")
+#app.allow("agent-health", "core_get_health_summary")
+#app.allow("agent-health", "core_trigger_manual_sync") # Previously core_garmin_sync/nutrition_sync
+#app.allow("agent-health", "core_save_recommendation")
+#app.allow("agent-health", "core_notify_health")
 
 # ===================================================================
 # ✅ Start scheduler inside lifespan (FIXED: Await + Shutdown)

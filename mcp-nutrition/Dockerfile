@@ -9,6 +9,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+COPY ../notify.py .
+COPY ../templates/ ./templates/
 
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8003

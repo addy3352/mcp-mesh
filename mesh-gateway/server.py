@@ -68,11 +68,14 @@ def allow_tool(policy, role: str, tool: str) -> bool:
 
 
 @app.get("/mesh/tools")
-def list_tools(request: Request):
+def list_tools(request: Request,key: str = Query(None)):
     policy = load_policy()
-    client_id = request.headers.get("X-Client-Id", "unknown")
-    role      = request.headers.get("X-Client-Role", "unknown")
-
+    if key == CHATGPT_SECRET_KEY:
+        client_id = "chatgpt-connector" 
+        role = "chatgpt-agent" # INJECT the authorized role
+    else:
+        client_id = request.headers.get("X-Client-Id", "unknown")
+        role      = request.headers.get("X-Client-Role", "unknown")
     services = policy.get("services", {})
     out = []
     for svc, cfg in services.items():
@@ -94,11 +97,11 @@ class ToolCall(BaseModel):
 
 @app.post("/mesh/call")
 def call_tool(body: ToolCall, request: Request,key: str = Query(None)):  # <-- INJECT QUERY PARAM
+    policy = load_policy()
     if key == CHATGPT_SECRET_KEY:
         client_id = "chatgpt-connector" 
         role = "chatgpt-agent" # INJECT the authorized role
     else:
-        policy = load_policy()
         client_id = request.headers.get("X-Client-Id", "unknown")
         role      = request.headers.get("X-Client-Role", "unknown")
     tool = body.tool
