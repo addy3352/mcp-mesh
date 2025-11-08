@@ -18,17 +18,28 @@ async def get_client():
 class DateBody(BaseModel):
     date: date
 
+class SyncBody(BaseModel):
+    date: str | None = None
+
 class DateRange(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
 
 # ADDED: Endpoint for garmin.sync tool
 @router.post("/garmin.sync")
-async def sync_daily_data(date: str | None = None):
+async def sync_daily_data(body: SyncBody):
     # sync_garmin_daily handles date logic (defaults to today if None)
-    target_date = date if date else None
+    target_date = body.date if body.date else None
     await sync_garmin_daily(target=target_date)
-    return {"status": "ok", "synced_date": target_date or date.today().isoformat()}
+    
+    # Determine the date that was actually synced
+    synced_date_str = target_date
+    if not synced_date_str:
+        # Import date here to avoid shadowing
+        from datetime import date
+        synced_date_str = date.today().isoformat()
+
+    return {"status": "ok", "synced_date": synced_date_str}
 
 @router.post("/garmin.get_stats")
 async def get_stats(body: DateBody, client: GarminClient = Depends(get_client)):

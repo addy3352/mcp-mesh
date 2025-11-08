@@ -18,6 +18,7 @@ def notify(template_name, vars, etype="general"):
         url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json"
         data = {"From": TWILIO_FROM_WA, "To": USER_WA, "Body": msg}
         requests.post(url, data=data, auth=(TWILIO_SID, TWILIO_TOKEN))
+        print("Message sent")
 
     print(f"[notify][{etype}] {msg}")
 

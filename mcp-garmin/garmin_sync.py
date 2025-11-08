@@ -54,4 +54,13 @@ async def sync_garmin_daily(target: date | None = None):
         VALUES (?,?,?,?,?,?,?,?,?,?,?)
         """, (d.isoformat(), steps, calories, distance_km, sleep_hours, hrv_ms, rhr_bpm, stress, training_load, vo2max, readiness))
 
-    notify("✅ Garmin sync complete", f"{d.isoformat()}: {distance_km} km, HRV {hrv_ms} ms, RHR {rhr_bpm} bpm", {"date": d.isoformat()}, etype="garmin_sync")
+    notify(
+        template_name="manual_garmin_sync.txt",
+        vars={
+            "distance_km": distance_km,
+            "rhr_bpm": rhr_bpm,
+            "hrv_ms": hrv_ms,
+            "sleep_hours": sleep_hours
+        },
+        etype="garmin_sync"
+    )

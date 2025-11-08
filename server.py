@@ -2,30 +2,29 @@ import sqlite3
 import os
 import asyncio
 from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException
 from fastmcp import FastMCP
 from scheduler import start_scheduler
-from notify import notify  # Need to import notify
-from mcp_client import call_tool # Needed to trigger remote syncs
+from notify import notify
+from mcp_client import call_tool
 
 DB_PATH = os.getenv("SQLITE_PATH", "/data/mesh.db")
-GLOBAL_SCHEDULER = None # Global to hold the scheduler instance
+GLOBAL_SCHEDULER = None
 
 def db():
-    # Helper function to get DB connection (using built-in sqlite3, not db/db.py)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-# ✅ FastMCP app
-app = FastMCP(name="mesh-core")
+# 1. Create the FastMCP app instance first
+mcp = FastMCP(name="mesh-core")
 
 # ===================================================================
-# ✅ MCP Tools
+# ✅ MCP Tools (now registered with 'mcp' instance)
 # ===================================================================
 
-@app.tool()
+@mcp.tool()
 def core_get_health_summary(days: int = 7):
-    # Data retrieval for Agent-Health (and others)
     with db() as conn:
         rows = conn.execute("""
             SELECT date, steps, calories, distance_km, sleep_hours, hrv_ms, rhr_bpm
@@ -35,89 +34,84 @@ def core_get_health_summary(days: int = 7):
         """, (days,)).fetchall()
     return {"data": [dict(r) for r in rows]}
 
-@app.tool()
+@mcp.tool()
 async def core_trigger_manual_sync():
-    # Use mcp_client to trigger the remote sync tools in other services
-    # This replaces core_garmin_sync and core_nutrition_sync for better service separation
     await asyncio.gather(
         call_tool("garmin.sync", role="system-manual-sync"),
         call_tool("nutrition.sync", role="system-manual-sync")
     )
     return {"status": "Garmin and Nutrition syncs triggered remotely via Mesh"}
 
-@app.tool()
+@mcp.tool()
 def core_save_recommendation(text: str):
-    # Saves the recommendation text into the events table
     with db() as conn:
         conn.execute("INSERT INTO events(type, message) VALUES (?,?)",
                      ("recommendation", text))
     return {"status": "saved recommendation to DB"}
 
-@app.tool()
+@mcp.tool()
 def core_notify_health(text: str):
-    # Uses notify.py to send the message (e.g., via WhatsApp)
     notify(
-        template_name="recommendation.txt", # Placeholder template for general text
+        template_name="recommendation.txt",
         vars={"text": text},
         etype="agent_recommendation"
     )
     return {"status": "sent notification"}
 
-# ===================================================================
-# ✅ Access Control (Core tools only accessible to Agent-Health)
-# ===================================================================
+# 2. Create the main FastAPI app
+app = FastAPI(title="MCP Mesh Core")
 
-#app.allow("agent-health", "core_get_health_summary")
-#app.allow("agent-health", "core_trigger_manual_sync") # Previously core_garmin_sync/nutrition_sync
-#app.allow("agent-health", "core_save_recommendation")
-#app.allow("agent-health", "core_notify_health")
+# 3. Add the health check endpoint to the main FastAPI app
+@app.get("/health")
+def health_check():
+    try:
+        with db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='garmin_daily'")
+            if cursor.fetchone():
+                return {"status": "ok"}
+            else:
+                # Return 503 if the table doesn't exist, so the health check fails
+                raise HTTPException(status_code=503, detail="Database not initialized")
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Database connection failed: {e}")
 
 # ===================================================================
-# ✅ Start scheduler inside lifespan (FIXED: Await + Shutdown)
+# ✅ Lifespan and DB Initialization
 # ===================================================================
 
 def init_db():
-    """
-    Initializes the database by creating tables from the schema.sql file
-    if the tables do not already exist.
-    """
     db_dir = os.path.dirname(DB_PATH)
     os.makedirs(db_dir, exist_ok=True)
-    
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
-        # Check if the 'garmin_daily' table exists
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='garmin_daily'")
-        table_exists = cursor.fetchone()
-        
-        if not table_exists:
+        if not cursor.fetchone():
             print("Database tables not found. Initializing schema...")
             with open("db/schema.sql") as f:
                 conn.executescript(f.read())
             print("Database initialized successfully.")
-        
         conn.close()
     except Exception as e:
         print(f"Error during database initialization: {e}")
         raise
 
 @asynccontextmanager
-async def lifespan(app):
+async def lifespan(app: FastAPI):
     global GLOBAL_SCHEDULER
-    
-    # STARTUP: Initialize DB and then start scheduler
     init_db()
     GLOBAL_SCHEDULER = await start_scheduler()
     print("Scheduler successfully started in async context.")
-
-    yield # Application is now ready to receive requests
-
-    # SHUTDOWN: Clean shutdown
+    yield
     print("Shutting down APScheduler...")
     if GLOBAL_SCHEDULER:
         GLOBAL_SCHEDULER.shutdown()
         print("APScheduler shut down.")
 
+# Assign the lifespan to the main app
 app.lifespan = lifespan
+
+# 4. Mount the FastMCP app onto the main FastAPI app
+# This makes all the @mcp.tool() endpoints available under the /mcp prefix
+app.mount("/mcp", mcp.http_app())

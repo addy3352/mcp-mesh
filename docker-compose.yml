@@ -12,6 +12,11 @@ services:
       - meshdata:/data
     networks:
       - mcpnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mesh-gateway:
     build: ./mesh-gateway
@@ -32,11 +37,14 @@ services:
        dockerfile: mcp-garmin/Dockerfile
     container_name: mcp-garmin
     env_file: /opt/mcp-mesh/.env.mesh
+    volumes:
+      - meshdata:/data
     restart: unless-stopped
     networks:
       - mcpnet
     depends_on:
-      - mesh-core
+      mesh-core:
+        condition: service_healthy
 
   mcp-nutrition:
     build:
