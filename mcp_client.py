@@ -1,7 +1,7 @@
 import httpx
 import os
 
-MESH_URL = os.getenv("MESH_URL", "http://mcp-gateway:8090")
+MESH_URL = os.getenv("MESH_URL", "http://mesh-gateway:8090")
 
 async def call_tool(tool, args=None, role="system"):
     args = args or {}

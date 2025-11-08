@@ -7,11 +7,21 @@ from notify import notify
 
 GARMIN_EMAIL = os.getenv("GARMIN_EMAIL")
 GARMIN_PASSWORD = os.getenv("GARMIN_PASSWORD")
+print("Gaeminn email {}and password to test {}".format(GARMIN_EMAIL,GARMIN_PASSWORD))   
 
 async def _login() -> Garmin:
     g = Garmin(GARMIN_EMAIL, GARMIN_PASSWORD)
-    await run_in_threadpool(g.login)
-    return g
+    try:
+        await run_in_threadpool(g.login)
+        print("Garmin login successful.")
+        return g
+    except Exception as e:
+        print(f"Garmin login failed with exception: {e}")
+        # It's possible the profile is not what's expected.
+        # Let's try to see what garth object contains.
+        if hasattr(g, 'garth') and hasattr(g.garth, '_profile'):
+             print(f"Garth raw profile attribute: {g.garth._profile}")
+        raise
 
 
 
@@ -22,8 +32,8 @@ async def sync_garmin_daily(target: date | None = None):
     summary = await run_in_threadpool(g.get_stats, d.isoformat())
     hr = await run_in_threadpool(g.get_heart_rates, d.isoformat())
     sleep = await run_in_threadpool(g.get_sleep_data, d.isoformat())
-    tr_load = await run_in_threadpool(g.get_training_status)
-    vo2 = await run_in_threadpool(g.get_max_metrics)
+    tr_load = await run_in_threadpool(g.get_training_status, d.isoformat())
+    vo2 = await run_in_threadpool(g.get_max_metrics, d.isoformat())
 
     # Map safely
     steps = summary.get("totalSteps") or 0

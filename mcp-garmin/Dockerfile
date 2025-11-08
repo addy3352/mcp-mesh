@@ -8,12 +8,19 @@ ENV PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY mcp-garmin/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
-COPY ../notify.py .
-COPY ../templates/ ./templates/
+# ADDED: Copy local DB helper
+COPY db.py .
+
+# ADDED: Copy files from the parent (project root) directory
+COPY notify.py .
+COPY templates/ ./templates/
+
+# Moved to the end to ensure required files are present before copying all remaining
+COPY mcp-garmin/ .
+
 
 ENV PYTHONUNBUFFERED=1
 

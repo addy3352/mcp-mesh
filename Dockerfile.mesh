@@ -30,7 +30,7 @@ ENV SQLITE_PATH=/data/mesh.db
 
 
 # Expose public mesh control API
-EXPOSE 8090
+EXPOSE 8091
 
 # Entrypoint (runs DB init + scheduler + API)
 # Entrypoint (runs DB init + API with integrated scheduler)
@@ -44,5 +44,5 @@ CMD ["sh", "-c", "\
     fi; \
     echo 'Starting MCP Mesh Core...'; \
     # FIX: Run Uvicorn in the foreground (no '&' or 'python scheduler.py')
-    uvicorn server:app --host 0.0.0.0 --port 8090 \
+    uvicorn server:app --host 0.0.0.0 --port 8091 \
 "]

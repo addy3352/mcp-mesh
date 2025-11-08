@@ -1,9 +1,9 @@
 services:
-  garmin:      { url: http://mcp-garmin:8001 }
+  garmin:      { url: http://mcp-garmin:8000 }
   nutrition:   { url: http://mcp-nutrition:8003 }
   linkedin:    { url: http://mcp-linkedin:8005 }
-  portal:      { url: http://mcp-portal:8007 }
-  agenthealth: { url: http://mcp-agent-health:8009 }
+  portal:      { url: http://mcp-portal:8008 }
+  agenthealth: { url: http://mcp-agent-health:8008 }
 
 roles:
   chatgpt-agent:  # Only logs meals into mesh
@@ -11,6 +11,7 @@ roles:
       - nutrition.write_meal
       - nutrition.get_daily_summary
       - nutrition.list_meals
+      - garmin.sync # TEMPORARY FOR TESTING
     deny_tools:
       - linkedin.create_post
       - garmin.*

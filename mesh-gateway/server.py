@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException , Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os, httpx, sqlite3, json, time, yaml
@@ -10,6 +10,7 @@ import os
 POLICY_PATH = os.getenv("POLICY_CONFIG", "/app/policy.yaml")
 AUDIT_DB     = os.getenv("AUDIT_DB_PATH", "/data/audit.db")
 CHATGPT_SECRET_KEY = os.getenv("CHATGPT_SECRET_KEY") # Load from .env.mesh
+print("chatgpt {}".format(CHATGPT_SECRET_KEY))
 
 app = FastAPI(title="MCP Gateway (Governance & Audit)")
 
@@ -76,9 +77,23 @@ def list_tools(request: Request,key: str = Query(None)):
     else:
         client_id = request.headers.get("X-Client-Id", "unknown")
         role      = request.headers.get("X-Client-Role", "unknown")
+    
     services = policy.get("services", {})
     out = []
-    for svc, cfg in services.items():
+    
+    role_policy = policy.get("roles", {}).get(role, {})
+    allowed_tools_config = role_policy.get("allow_tools")
+
+    # Determine which services to iterate over
+    services_to_check = services.keys()
+    if allowed_tools_config is not None:
+        # If there is an allow_tools list, we only need to check the services mentioned in that list.
+        services_to_check = set(tool.split('.')[0] for tool in allowed_tools_config)
+
+    for svc in services_to_check:
+        if svc not in services:
+            continue
+        cfg = services[svc]
         try:
             r = httpx.get(f"{cfg['url']}/mcp/tools", timeout=5.0)
             r.raise_for_status()
@@ -88,6 +103,7 @@ def list_tools(request: Request,key: str = Query(None)):
                     out.append({**t, "service": svc})
         except Exception:
             continue
+            
     return {"client_id": client_id, "role": role, "tools": out}
 
 class ToolCall(BaseModel):
@@ -106,6 +122,7 @@ def call_tool(body: ToolCall, request: Request,key: str = Query(None)):  # <-- I
         role      = request.headers.get("X-Client-Role", "unknown")
     tool = body.tool
     args = body.args or {}
+    print("I am in mesh call")
 
     if not allow_tool(policy, role, tool):
         record_audit((f"audit-{time.time_ns()}", int(time.time()), client_id, role, body.route or "", tool, json.dumps(redact(args)), "deny"))

@@ -11,6 +11,7 @@ def db() -> sqlite3.Connection:
     Provides a database connection context manager for the garmin service
     to interact with the shared mesh database.
     """
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:

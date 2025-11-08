@@ -76,12 +76,39 @@ def core_notify_health(text: str):
 # ✅ Start scheduler inside lifespan (FIXED: Await + Shutdown)
 # ===================================================================
 
+def init_db():
+    """
+    Initializes the database by creating tables from the schema.sql file
+    if the tables do not already exist.
+    """
+    db_dir = os.path.dirname(DB_PATH)
+    os.makedirs(db_dir, exist_ok=True)
+    
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if the 'garmin_daily' table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='garmin_daily'")
+        table_exists = cursor.fetchone()
+        
+        if not table_exists:
+            print("Database tables not found. Initializing schema...")
+            with open("db/schema.sql") as f:
+                conn.executescript(f.read())
+            print("Database initialized successfully.")
+        
+        conn.close()
+    except Exception as e:
+        print(f"Error during database initialization: {e}")
+        raise
+
 @asynccontextmanager
 async def lifespan(app):
     global GLOBAL_SCHEDULER
     
-    # STARTUP: Await the scheduler startup
-    # start_scheduler is an async function in scheduler.py and MUST be awaited.
+    # STARTUP: Initialize DB and then start scheduler
+    init_db()
     GLOBAL_SCHEDULER = await start_scheduler()
     print("Scheduler successfully started in async context.")
 

@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 from fastapi.concurrency import run_in_threadpool # CRITICAL: Import for synchronous code
 from models import MealEntry, DailySummaryRequest, MealsQuery
-from db import insert_meal, daily_summary, list_meals
+from nutrition_db  import insert_meal, daily_summary, list_meals
 from auth import require_api_key
 from nutrition_sync import sync_nutrition_daily # Import the sync function
 from datetime import date

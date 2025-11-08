@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from router import router
 from tools import list_tools
-from db import init_db
+from nutrition_db  import init_db
 
 app = FastAPI(title="MCP Nutrition Server")
 
