@@ -6,6 +6,7 @@ async def compute_recommendation():
     data = await call_tool("core.get_health_summary")
 
     rows = data.get("result", [])
+    print("No data in core.get_healthsummary {}".format(rows))
     if not rows:
         return {"error": "No data"}
 

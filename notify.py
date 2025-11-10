@@ -1,4 +1,5 @@
 import os, requests
+from twilio.rest import Client
 
 def load_template(filename):
     path = os.path.join(os.path.dirname(__file__), "templates", filename)
@@ -13,12 +14,19 @@ def notify(template_name, vars, etype="general"):
     TWILIO_TOKEN   = os.getenv("TWILIO_TOKEN")
     TWILIO_FROM_WA = os.getenv("TWILIO_FROM_WA")
     USER_WA        = os.getenv("USER_WA")
+    
 
-    if TWILIO_SID and USER_WA:
-        url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json"
-        data = {"From": TWILIO_FROM_WA, "To": USER_WA, "Body": msg}
-        requests.post(url, data=data, auth=(TWILIO_SID, TWILIO_TOKEN))
-        print("Message sent")
+    if TWILIO_SID and TWILIO_TOKEN and TWILIO_FROM_WA and USER_WA:
+        try:
+            client = Client(TWILIO_SID, TWILIO_TOKEN)
+            message = client.messages.create(
+                from_=TWILIO_FROM_WA,
+                body=msg,
+                to=USER_WA
+            )
+            print(f"Twilio message sent with SID: {message.sid}")
+        except Exception as e:
+            print(f"Error sending Twilio message: {e}")
 
     print(f"[notify][{etype}] {msg}")
 

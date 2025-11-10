@@ -7,8 +7,8 @@ async def call_tool(tool, args=None, role="agent-health"):
     args = args or {}
     async with httpx.AsyncClient() as client:
         r = await client.post(
-            f"{MESH_CORE_URL}/mcp/call",
-            json={"tool": tool, "args": args},
+            f"{MESH_CORE_URL}/mcp/tool/{tool}",
+            json=args,
             headers={
                 "X-Client-Role": role,
                 "X-Client-Id": "agent-health"

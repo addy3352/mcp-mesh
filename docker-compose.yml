@@ -30,6 +30,11 @@ services:
     restart: unless-stopped
     networks:
       - mcpnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mcp-garmin:
     build: 
@@ -66,13 +71,14 @@ services:
     restart: unless-stopped
     networks:
       - mcpnet
+
   mcp-portal:
-     build: ./mcp-portal
-     container_name: mcp-portal
-     env_file: /opt/mcp-mesh/.env.mesh
-     restart: unless-stopped
-     networks:
-      - mcpnet        
+    build: ./mcp-portal
+    container_name: mcp-portal
+    env_file: /opt/mcp-mesh/.env.mesh
+    restart: unless-stopped
+    networks:
+      - mcpnet
 
   mcp-agent-health:
     build: ./mcp-agent_health
@@ -85,9 +91,12 @@ services:
     networks:
       - mcpnet
     depends_on:
-      - mesh-gateway
-      - mcp-garmin
-      - mcp-nutrition
+      mesh-gateway:
+        condition: service_healthy
+      mcp-garmin:
+        condition: service_started
+      mcp-nutrition:
+        condition: service_started
 
   nginx:
     image: nginx:latest
@@ -95,13 +104,13 @@ services:
     restart: unless-stopped
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - /etc/letsencrypt:/etc/letsencrypt:ro  # Add this line
-
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     ports:
       - "80:80"
       - "443:443"
     depends_on:
-      - mesh-gateway
+      mesh-gateway:
+        condition: service_healthy
     networks:
       - mcpnet
 

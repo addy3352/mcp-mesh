@@ -32,6 +32,7 @@ def core_get_health_summary(days: int = 7):
             ORDER BY date DESC
             LIMIT ?
         """, (days,)).fetchall()
+    print("if data is there {}".format(data))
     return {"data": [dict(r) for r in rows]}
 
 @mcp.tool()

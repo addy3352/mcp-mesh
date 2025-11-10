@@ -7,3 +7,5 @@ python-dotenv>=1.0.1
 apscheduler
 httpx>=0.28.1
 requests
+twilio
+openai

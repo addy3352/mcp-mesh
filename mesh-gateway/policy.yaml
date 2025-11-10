@@ -1,9 +1,10 @@
 services:
+  mesh-core:   { url: http://mesh-core:8091 }
   garmin:      { url: http://mcp-garmin:8000 }
   nutrition:   { url: http://mcp-nutrition:8003 }
   linkedin:    { url: http://mcp-linkedin:8005 }
-  portal:      { url: http://mcp-portal:8008 }
-  agenthealth: { url: http://mcp-agent-health:8008 }
+  portal:      { url: http://mcp-portal:8007 }
+  agent-health: { url: http://mcp-agent-health:8008 }
 
 roles:
   chatgpt-agent:  # Only logs meals into mesh
@@ -15,7 +16,7 @@ roles:
     deny_tools:
       - linkedin.create_post
       - garmin.*
-      - agenthealth.*
+      - agent-health.*
       - portal.update_health_panel
 
   agent-iris:     # posts to LinkedIn only
@@ -24,7 +25,7 @@ roles:
     deny_tools:
       - nutrition.*
       - garmin.*
-      - agenthealth.*
+      - agent-health.*
       - portal.update_health_panel
 
   agent-health:   # Health reasoning agent
@@ -36,19 +37,35 @@ roles:
       - garmin.get_all_day_stress
       - garmin.get_hrv_data
       - garmin.get_activities_range
-      
+      - mesh-core.core_get_health_summary      
       # Nutrition reads
       - nutrition.get_daily_summary
       
       # Health DB writes
-      - agenthealth.save_recommendation
-      - agenthealth.notify_health
+      - agent-health.save_recommendation
+      - agent-health.get_ai_recommendation
+      - agent-health.notify_health
       
       # Sync triggers
-      - agenthealth.trigger_manual_sync
+      - agent-health.trigger_manual_sync
 
       # UI update
       - portal.update_health_panel
+
     deny_tools:
       - nutrition.write_meal
       - linkedin.*
+
+  portal-agent:
+    allow_tools:
+      - nutrition.get_daily_summary # For /mesh/calories/latest and /mesh/weight/latest
+      - agent-health.get_ai_recommendation # For /mesh/ai/recommendation
+      - garmin.sync # For /mesh/sync/garmin
+      - nutrition.sync # For /mesh/sync/nutrition
+      - nutrition.list_meals
+      - portal.get_user_metrics
+      - mesh-core.core_get_health_summary     
+    deny_tools:
+      - linkedin.create_post
+      - chatgpt.*
+      - agent-health.save_recommendation  
