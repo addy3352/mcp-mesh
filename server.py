@@ -7,22 +7,23 @@ from fastmcp import FastMCP
 from scheduler import start_scheduler
 from notify import notify
 from mcp_client import call_tool
+from pydantic import BaseModel
+from typing import Dict, Any, Optional
 
+# --- Configuration ---
 DB_PATH = os.getenv("SQLITE_PATH", "/data/mesh.db")
 GLOBAL_SCHEDULER = None
 
+# --- Database Helper ---
 def db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-# 1. Create the FastMCP app instance first
+# --- FastMCP Instance ---
 mcp = FastMCP(name="mesh-core")
 
-# ===================================================================
-# ✅ MCP Tools (now registered with 'mcp' instance)
-# ===================================================================
-
+# --- Tool Functions ---
 @mcp.tool()
 def core_get_health_summary(days: int = 7):
     with db() as conn:
@@ -32,7 +33,6 @@ def core_get_health_summary(days: int = 7):
             ORDER BY date DESC
             LIMIT ?
         """, (days,)).fetchall()
-    print("if data is there {}".format(data))
     return {"data": [dict(r) for r in rows]}
 
 @mcp.tool()
@@ -59,10 +59,68 @@ def core_notify_health(text: str):
     )
     return {"status": "sent notification"}
 
-# 2. Create the main FastAPI app
-app = FastAPI(title="MCP Mesh Core")
+# --- FastAPI App Initialization ---
+app = FastAPI(title="MCP Mesh Core (Refactored)", version="2.0.0")
 
-# 3. Add the health check endpoint to the main FastAPI app
+# --- Pydantic Models ---
+class ToolCallRequest(BaseModel):
+    name: str
+    arguments: Optional[Dict[str, Any]] = {}
+
+# --- Manual MCP Endpoints ---
+@app.post("/mcp/call")
+async def call_mcp_tool(request: ToolCallRequest):
+    """Call a mesh-core tool via REST API"""
+    tool_map = {
+        "mesh-core.core_get_health_summary": core_get_health_summary,
+        "mesh-core.core_trigger_manual_sync": core_trigger_manual_sync,
+        "mesh-core.core_save_recommendation": core_save_recommendation,
+        "mesh-core.core_notify_health": core_notify_health,
+    }
+    
+    if request.name not in tool_map:
+        raise HTTPException(status_code=404, detail=f"Tool not found: {request.name}")
+    
+    try:
+        tool_func = tool_map[request.name]
+        # Check if the function is async
+        if asyncio.iscoroutinefunction(tool_func.fn):
+            result = await tool_func.fn(**request.arguments)
+        else:
+            result = tool_func.fn(**request.arguments)
+        return {"result": result, "tool": request.name}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/mcp/tools")
+async def list_tools():
+    """List all available mesh-core tools"""
+    return {
+        "tools": [
+            {
+                "name": "mesh-core.core_get_health_summary",
+                "description": "Get health summary for a specified number of days.",
+                "parameters": {"days": "int (default: 7)"}
+            },
+            {
+                "name": "mesh-core.core_trigger_manual_sync",
+                "description": "Trigger manual data synchronization for Garmin and Nutrition.",
+                "parameters": {}
+            },
+            {
+                "name": "mesh-core.core_save_recommendation",
+                "description": "Save a health recommendation to the database.",
+                "parameters": {"text": "str"}
+            },
+            {
+                "name": "mesh-core.core_notify_health",
+                "description": "Send a health notification.",
+                "parameters": {"text": "str"}
+            }
+        ]
+    }
+
+# --- Health Check & Lifespan ---
 @app.get("/health")
 def health_check():
     try:
@@ -72,14 +130,9 @@ def health_check():
             if cursor.fetchone():
                 return {"status": "ok"}
             else:
-                # Return 503 if the table doesn't exist, so the health check fails
                 raise HTTPException(status_code=503, detail="Database not initialized")
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database connection failed: {e}")
-
-# ===================================================================
-# ✅ Lifespan and DB Initialization
-# ===================================================================
 
 def init_db():
     db_dir = os.path.dirname(DB_PATH)
@@ -110,9 +163,4 @@ async def lifespan(app: FastAPI):
         GLOBAL_SCHEDULER.shutdown()
         print("APScheduler shut down.")
 
-# Assign the lifespan to the main app
 app.lifespan = lifespan
-
-# 4. Mount the FastMCP app onto the main FastAPI app
-# This makes all the @mcp.tool() endpoints available under the /mcp prefix
-app.mount("/mcp", mcp.http_app())

@@ -3,10 +3,10 @@ from llm import get_llm_recommendation
 
 async def compute_recommendation():
     # Fetch data from mesh-core DB via MCP tool
-    data = await call_tool("core.get_health_summary")
+    data = await call_tool("mesh-core.core_get_health_summary")
 
     rows = data.get("result", [])
-    print("No data in core.get_healthsummary {}".format(rows))
+    print("No data in core_get_healthsummary {}".format(rows))
     if not rows:
         return {"error": "No data"}
 

@@ -20,7 +20,7 @@ async def get_llm_recommendation(data):
     
     try:
         completion = await client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model="gpt-4-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful AI health assistant. Your response must be a JSON object."},
                 {"role": "user", "content": full_prompt}

@@ -31,6 +31,7 @@ roles:
   agent-health:   # Health reasoning agent
     allow_tools:
       # Garmin reads
+      - garmin.get_stats_.*      
       - garmin.get_stats
       - garmin.get_heart_rates
       - garmin.get_sleep_data

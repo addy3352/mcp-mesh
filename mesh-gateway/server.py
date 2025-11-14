@@ -3,14 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os, httpx, sqlite3, json, time, yaml
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, Dict, Optional
 
+# --- Configuration ---
 POLICY_PATH = os.getenv("POLICY_CONFIG", "/app/policy.yaml")
-AUDIT_DB     = os.getenv("AUDIT_DB_PATH", "/data/audit.db")
+AUDIT_DB = os.getenv("AUDIT_DB_PATH", "/data/audit.db")
 CHATGPT_SECRET_KEY = os.getenv("CHATGPT_SECRET_KEY")
-print("chatgpt {}".format(CHATGPT_SECRET_KEY))
+HEALTH_KEY = os.getenv("AGENT_HEALTH_KEY")
+AGENT_IRIS_KEY = os.getenv("AGENT_IRIS_KEY")
+PORTAL_KEY = os.getenv("PORTAL_API_KEY")
 
-app = FastAPI(title="MCP Gateway (Governance & Audit)")
+# --- FastAPI App Initialization ---
+app = FastAPI(title="MCP Gateway (Hybrid)", version="2.3.0")
 
 origins = [o.strip() for o in os.getenv("CORS_ALLOW_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
@@ -21,19 +25,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Database & Policy ---
 @contextmanager
 def db():
     os.makedirs(os.path.dirname(AUDIT_DB), exist_ok=True)
     conn = sqlite3.connect(AUDIT_DB)
     conn.execute("""CREATE TABLE IF NOT EXISTS audit(
-        id TEXT PRIMARY KEY,
-        ts INTEGER,
-        client_id TEXT,
-        role TEXT,
-        route TEXT,
-        tool TEXT,
-        args TEXT,
-        decision TEXT
+        id TEXT PRIMARY KEY, ts INTEGER, client_id TEXT, role TEXT,
+        route TEXT, tool TEXT, args TEXT, decision TEXT
     );""")
     try:
         yield conn
@@ -45,9 +44,10 @@ def load_policy():
     with open(POLICY_PATH, "r") as f:
         return yaml.safe_load(f)
 
+# --- Helper Functions ---
 def redact(d: Any):
     if isinstance(d, dict):
-        return {k: ("***" if k.lower() in {"token","password","access_token","bearer","authorization"} else redact(v)) for k, v in d.items()}
+        return {k: ("***" if k.lower() in {"token", "password", "access_token", "bearer", "authorization"} else redact(v)) for k, v in d.items()}
     if isinstance(d, list):
         return [redact(x) for x in d]
     return d
@@ -56,102 +56,103 @@ def record_audit(row):
     with db() as conn:
         conn.execute("INSERT OR REPLACE INTO audit VALUES(?,?,?,?,?,?,?,?)", row)
 
+# --- Refactored Authentication & Authorization ---
+def identify_client(key: str, request: Request):
+    """Identifies the client and role based on the API key."""
+    if key == CHATGPT_SECRET_KEY:
+        return "chatgpt-connector", "chatgpt-agent"
+    elif key == HEALTH_KEY:
+        return "agent-health", "agent-health"
+    elif key == PORTAL_KEY:
+        return "portal-agent", "portal-agent"
+    elif key == AGENT_IRIS_KEY:
+        return "agent-iris", "agent-iris"
+    else:
+        # Fallback for old clients or other auth methods
+        client_id = request.headers.get("X-Client-Id", "unknown")
+        role = request.headers.get("X-Client-Role", "unknown")
+        if client_id != "unknown":
+            return client_id, role
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
 def allow_tool(policy, role: str, tool: str) -> bool:
-    allow = set(policy.get("roles", {}).get(role, {}).get("allow_tools", []))
-    deny  = set(policy.get("roles", {}).get(role, {}).get("deny_tools", []))
-    if tool in deny:
-        return False
-    if allow and tool not in allow:
-        return False
-    return True
-
-@app.get("/mesh/tools")
-def list_tools(request: Request, key: str = Query(None)):
-    policy = load_policy()
-    if key == CHATGPT_SECRET_KEY:
-        client_id = "chatgpt-connector" 
-        role = "chatgpt-agent"
-    else:
-        client_id = request.headers.get("X-Client-Id", "unknown")
-        role      = request.headers.get("X-Client-Role", "unknown")
-    
-    services = policy.get("services", {})
-    out = []
-    
+    """Checks if a role is allowed to use a specific tool based on the policy."""
     role_policy = policy.get("roles", {}).get(role, {})
-    allowed_tools_config = role_policy.get("allow_tools")
-
-    services_to_check = services.keys()
-    if allowed_tools_config is not None:
-        services_to_check = set(tool.split('.')[0] for tool in allowed_tools_config)
-
-    for svc in services_to_check:
-        if svc not in services:
-            continue
-        cfg = services[svc]
-        try:
-            r = httpx.get(f"{cfg['url']}/mcp/tools", timeout=5.0)
-            r.raise_for_status()
-            tools = r.json().get("tools", [])
-            for t in tools:
-                if allow_tool(policy, role, t["name"]):
-                    out.append({**t, "service": svc})
-        except Exception:
-            continue
-            
-    return {"client_id": client_id, "role": role, "tools": out}
-
-class ToolCall(BaseModel):
-    tool: str
-    args: dict = {}
-    route: str | None = None
-
-@app.post("/mesh/call")
-def call_tool(body: ToolCall, request: Request, key: str = Query(None)):
-    policy = load_policy()
-    if key == CHATGPT_SECRET_KEY:
-        client_id = "chatgpt-connector" 
-        role = "chatgpt-agent"
-    else:
-        client_id = request.headers.get("X-Client-Id", "unknown")
-        role      = request.headers.get("X-Client-Role", "unknown")
+    allow = set(role_policy.get("allow_tools", []))
+    deny = set(role_policy.get("deny_tools", []))
     
-    tool = body.tool
-    args = body.args or {}
-    print(f"[Gateway] Calling tool: {tool}")
+    if any(d.endswith('*') and tool.startswith(d[:-1]) for d in deny) or tool in deny:
+        return False
+    
+    if not allow:
+        return True
+        
+    if any(a.endswith('*') and tool.startswith(a[:-1]) for a in allow) or tool in allow:
+        return True
+        
+    return False
 
-    if not allow_tool(policy, role, tool):
-        record_audit((f"audit-{time.time_ns()}", int(time.time()), client_id, role, body.route or "", tool, json.dumps(redact(args)), "deny"))
-        raise HTTPException(status_code=403, detail=f"Tool '{tool}' not allowed for role '{role}'")
+# --- Generic Tool Call Function ---
+async def call_tool(tool_name: str, args: Dict[str, Any], role: str):
+    """
+    Internal function to call any MCP tool.
+    """
+    policy = load_policy()
 
-    svc = tool.split(".")[0]
+    if not allow_tool(policy, role, tool_name):
+        raise HTTPException(status_code=403, detail=f"Tool '{tool_name}' not allowed for role '{role}'")
+
+    svc = tool_name.split(".")[0]
     services = policy.get("services", {})
     if svc not in services:
-        raise HTTPException(status_code=502, detail=f"Service for tool '{tool}' not configured")
+        raise HTTPException(status_code=502, detail=f"Service '{svc}' for tool '{tool_name}' not configured")
 
-    # ✅ FIXED: Use /mcp/call with JSON body instead of /mcp/tool/{name}
     url = f"{services[svc]['url']}/mcp/call"
-    payload = {
-        "name": tool,
-        "arguments": args
-    }
-    
-    print(f"[Gateway] URL: {url}")
-    print(f"[Gateway] Payload: {payload}")
+    payload = {"name": tool_name, "arguments": args}
     
     try:
-        r = httpx.post(url, json=payload, timeout=60.0)
-        r.raise_for_status()
-        record_audit((f"audit-{time.time_ns()}", int(time.time()), client_id, role, body.route or "", tool, json.dumps(redact(args)), "allow"))
-        
-        try:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(url, json=payload, timeout=60.0)
+            r.raise_for_status()
             return r.json()
-        except Exception:
-            return {"result": r.text}
     except httpx.HTTPError as e:
-        print(f"[Gateway] Error: {e}")
         raise HTTPException(status_code=502, detail=str(e))
 
+# --- Portal API Endpoints ---
+@app.post("/mcp/call/garmin/latest")
+async def garmin_latest(request: Request, key: str = Query(None)):
+    client_id, role = identify_client(key, request)
+    # This should call mesh-core.get_health_summary, but we'll call garmin.get_stats for now
+    # as mesh-core is not fully integrated yet.
+    data = await call_tool("garmin.get_stats", {}, role)
+    return data.get("data", {})
+
+@app.get("/mcp/call/weight/latest")
+async def weight_latest(request: Request, key: str = Query(None)):
+    client_id, role = identify_client(key, request)
+    return await call_tool("garmin.get_stats_and_body", {}, role)
+
+@app.get("/mcp/call/calories/latest")
+async def calories_latest(request: Request, key: str = Query(None)):
+    client_id, role = identify_client(key, request)
+    return await call_tool("nutrition.get_daily_summary", {}, role)
+
+@app.post("/mcp/call/ai/recommendation")
+async def ai_recommendation(request: Request, key: str = Query(None)):
+    client_id, role = identify_client(key, request)
+    return await call_tool("agent-health.get_ai_recommendation", {}, role)
+
+@app.post("/mcp/call/sync/garmin")
+async def sync_garmin(request: Request, key: str = Query(None)):
+    client_id, role = identify_client(key, request)
+    return await call_tool("garmin.sync", {}, role)
+
+@app.post("/mcp/call/sync/nutrition")
+async def sync_nutrition(request: Request, key: str = Query(None)):
+    client_id, role = identify_client(key, request)
+    return await call_tool("nutrition.sync", {}, role)
+
+# --- Other Endpoints ---
 @app.get("/audit/export")
 def audit_export():
     with db() as conn:
@@ -162,33 +163,3 @@ def audit_export():
 @app.get("/ping")
 def ping():
     return {"status": "ok", "service": "mcp-gateway"}
-
-# ✅ NEW: Direct endpoint for AI recommendation
-@app.get("/mesh/ai/recommendation")
-async def ai_recommendation(key: str = Query(...)):
-    """Get AI health recommendation with API key authentication"""
-    if key != CHATGPT_SECRET_KEY:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    
-    policy = load_policy()
-    services = policy.get("services", {})
-    
-    if "agent-health" not in services:
-        raise HTTPException(status_code=502, detail="agent-health service not configured")
-    
-    url = f"{services['agent-health']['url']}/mcp/call"
-    payload = {
-        "name": "agent-health.get_ai_recommendation",
-        "arguments": {}
-    }
-    
-    print(f"[Gateway] AI Recommendation URL: {url}")
-    
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            r = await client.post(url, json=payload)
-            r.raise_for_status()
-            return r.json()
-    except httpx.HTTPError as e:
-        print(f"[Gateway] Error calling AI recommendation: {e}")
-        raise HTTPException(status_code=502, detail=str(e))

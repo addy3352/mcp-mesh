@@ -14,22 +14,22 @@ print("=== Agent Health Service Starting ===")
 @mcp.tool()
 async def get_health_metrics(days: int = 7):
     """Get health summary for specified number of days"""
-    return await call_tool("core.get_health_summary", {"days": days}, role="agent-health")
+    return await call_tool("mesh-core.get_health_summary", {"days": days}, role="agent-health")
 
 @mcp.tool()
 async def save_recommendation(text: str):
     """Save a health recommendation"""
-    return await call_tool("core.save_recommendation", {"text": text}, role="agent-health")
+    return await call_tool("mesh-core.save_recommendation", {"text": text}, role="agent-health")
 
 @mcp.tool()
 async def notify_health(text: str):
     """Send health notification"""
-    return await call_tool("core.notify_health", {"text": text}, role="agent-health")
+    return await call_tool("mesh-core.notify_health", {"text": text}, role="agent-health")
 
 @mcp.tool()
 async def trigger_manual_sync():
     """Trigger manual data synchronization"""
-    return await call_tool("core.trigger_manual_sync", role="agent-health")
+    return await call_tool("mesh-core.trigger_manual_sync", role="agent-health")
 
 @mcp.tool()
 async def get_ai_recommendation():
