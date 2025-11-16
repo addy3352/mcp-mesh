@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import os, httpx, sqlite3, json, time, yaml
 from contextlib import contextmanager
 from typing import Any, Dict, Optional
+from datetime import date
 
 # --- Configuration ---
 POLICY_PATH = os.getenv("POLICY_CONFIG", "/app/policy.yaml")
@@ -57,7 +58,14 @@ def record_audit(row):
         conn.execute("INSERT OR REPLACE INTO audit VALUES(?,?,?,?,?,?,?,?)", row)
 
 # --- Refactored Authentication & Authorization ---
-def identify_client(key: str, request: Request):
+def identify_client(key: Optional[str], request: Request):
+    # Try query parameter first
+    if not key:
+        # Fallback to header
+        key = request.headers.get("X-API-KEY") or request.headers.get("x-api-key")
+    
+    if not key:
+        raise HTTPException(status_code=401, detail="Missing API key")
     """Identifies the client and role based on the API key."""
     if key == CHATGPT_SECRET_KEY:
         return "chatgpt-connector", "chatgpt-agent"
@@ -69,6 +77,10 @@ def identify_client(key: str, request: Request):
         return "agent-iris", "agent-iris"
     else:
         # Fallback for old clients or other auth methods
+        if key == HEALTH_KEY:
+            print ("I am equal")
+        else:
+            print("key supplied is {} and length : {} and health_key is {} & length is {}  and are they equal {}".format(key, HEALTH_KEY,len(key),len(HEALTH_KEY),key == HEALTH_KEY))
         client_id = request.headers.get("X-Client-Id", "unknown")
         role = request.headers.get("X-Client-Role", "unknown")
         if client_id != "unknown":
@@ -116,39 +128,43 @@ async def call_tool(tool_name: str, args: Dict[str, Any], role: str):
             r.raise_for_status()
             return r.json()
     except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=f"Error calling tool '{tool_name}': upstream service at '{url}' returned error: {e}")
 
 # --- Portal API Endpoints ---
 @app.post("/mcp/call/garmin/latest")
-async def garmin_latest(request: Request, key: str = Query(None)):
+async def garmin_latest(request: Request, key: Optional[str]  = Query(None)):
     client_id, role = identify_client(key, request)
     # This should call mesh-core.get_health_summary, but we'll call garmin.get_stats for now
     # as mesh-core is not fully integrated yet.
-    data = await call_tool("garmin.get_stats", {}, role)
-    return data.get("data", {})
+    today_str = date.today().isoformat()
+    data = await call_tool("garmin.get_stats", {"date": today_str}, role)
+    return data
 
 @app.get("/mcp/call/weight/latest")
-async def weight_latest(request: Request, key: str = Query(None)):
+async def weight_latest(request: Request, key: Optional[str] = Query(None)):
     client_id, role = identify_client(key, request)
-    return await call_tool("garmin.get_stats_and_body", {}, role)
+    today_str = date.today().isoformat()
+    return await call_tool("garmin.get_stats_and_body", {"date": today_str}, role)
 
 @app.get("/mcp/call/calories/latest")
-async def calories_latest(request: Request, key: str = Query(None)):
+async def calories_latest(request: Request, key: Optional[str] = Query(None)):
     client_id, role = identify_client(key, request)
-    return await call_tool("nutrition.get_daily_summary", {}, role)
+    today_str = date.today().isoformat()
+    return await call_tool("nutrition.get_daily_summary", {"date": today_str}, role)
 
 @app.post("/mcp/call/ai/recommendation")
-async def ai_recommendation(request: Request, key: str = Query(None)):
+async def ai_recommendation(request: Request, key: Optional[str] = Query(None)):
     client_id, role = identify_client(key, request)
+    print("role is {}".format(role))
     return await call_tool("agent-health.get_ai_recommendation", {}, role)
 
 @app.post("/mcp/call/sync/garmin")
-async def sync_garmin(request: Request, key: str = Query(None)):
+async def sync_garmin(request: Request, key: Optional[str] = Query(None)):
     client_id, role = identify_client(key, request)
     return await call_tool("garmin.sync", {}, role)
 
 @app.post("/mcp/call/sync/nutrition")
-async def sync_nutrition(request: Request, key: str = Query(None)):
+async def sync_nutrition(request: Request, key: Optional[str] = Query(None)):
     client_id, role = identify_client(key, request)
     return await call_tool("nutrition.sync", {}, role)
 

@@ -31,13 +31,14 @@ roles:
   agent-health:   # Health reasoning agent
     allow_tools:
       # Garmin reads
-      - garmin.get_stats_.*      
       - garmin.get_stats
+      - garmin.get_stats_and_body
       - garmin.get_heart_rates
       - garmin.get_sleep_data
       - garmin.get_all_day_stress
       - garmin.get_hrv_data
       - garmin.get_activities_range
+      - garmin.sync
       - mesh-core.core_get_health_summary      
       # Nutrition reads
       - nutrition.get_daily_summary
