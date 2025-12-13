@@ -34,19 +34,19 @@ async def sync_garmin_daily(target: date | None = None):
     sleep = await run_in_threadpool(g.get_sleep_data, d.isoformat())
     tr_load = await run_in_threadpool(g.get_training_status, d.isoformat())
     vo2 = await run_in_threadpool(g.get_max_metrics, d.isoformat())
-
+    hrv = await run_in_threadpool(g.get_hrv_data, d.isoformat())
     # Map safely
     steps = summary.get("totalSteps") or 0
     calories = summary.get("totalCalories") or 0
     distance_km = round((summary.get("totalDistance") or 0) / 1000, 2)
     sleep_hours = round((sleep.get("sleepTimeSeconds") or 0) / 3600, 2)
-    hrv_ms = (summary.get("hrvSummary", {}) or {}).get("lastNightAvg") or 0
+    hrv_ms = (hrv.get("hrvSummary", {}) or {}).get("lastNightAvg") or 0
     rhr_bpm = summary.get("restingHeartRate") or 0
     stress = summary.get("stressLevel") or 0
     training_load = (tr_load or {}).get("trainingLoad") or 0
     readiness = (summary.get("trainingReadinessScore") or 0)
     vo2max = (vo2 or {}).get("vo2Max") or 0
-
+    print("hrv data is {} ,distance in kms {}, Vo2 Max {}".format)
     with db() as conn:
         conn.execute("""
         INSERT OR REPLACE INTO garmin_daily
@@ -54,6 +54,7 @@ async def sync_garmin_daily(target: date | None = None):
         VALUES (?,?,?,?,?,?,?,?,?,?,?)
         """, (d.isoformat(), steps, calories, distance_km, sleep_hours, hrv_ms, rhr_bpm, stress, training_load, vo2max, readiness))
 
+    print("I am here for notification distnace {},hrv {}, sleep {}".format(distance_km,hrv_ms,sleep_hours))
     notify(
         template_name="manual_garmin_sync.txt",
         vars={

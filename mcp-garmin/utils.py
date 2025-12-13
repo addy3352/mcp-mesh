@@ -70,3 +70,6 @@ class GarminClient:
 
     async def get_activities_range(self, start_date, end_date):
         return await run_in_threadpool(self.client.get_activities_by_date, start_date, end_date)
+
+    async def get_daily_weigh_ins(self, date):
+        return await run_in_threadpool(self.client.get_body_composition, date)

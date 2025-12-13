@@ -122,3 +122,7 @@ async def get_activities_range(body: DateRange | None = None, client: GarminClie
         start = body.start_date
         end = body.end_date
     return await client.get_activities_range(start.isoformat(), end.isoformat())
+
+@router.post("/garmin.get_daily_weigh_ins")
+async def get_daily_weigh_ins(body: DateBody, client: GarminClient = Depends(get_client)):
+    return await client.get_daily_weigh_ins(body.date.isoformat())

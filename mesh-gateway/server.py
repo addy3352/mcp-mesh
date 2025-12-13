@@ -144,7 +144,7 @@ async def garmin_latest(request: Request, key: Optional[str]  = Query(None)):
 async def weight_latest(request: Request, key: Optional[str] = Query(None)):
     client_id, role = identify_client(key, request)
     today_str = date.today().isoformat()
-    return await call_tool("garmin.get_stats_and_body", {"date": today_str}, role)
+    return await call_tool("garmin.get_daily_weigh_ins", {"date": today_str}, role)
 
 @app.get("/mcp/call/calories/latest")
 async def calories_latest(request: Request, key: Optional[str] = Query(None)):

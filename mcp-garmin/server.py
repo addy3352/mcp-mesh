@@ -26,6 +26,7 @@ from router import (
     get_intensity_minutes,                                                                                                                                                                           
     get_activities_range,                                                                                                                                                                            
     sync_daily_data,                                                                                                                                                                                 
+    get_daily_weigh_ins,
     DateBody,                                                                                                                                                                                        
     SyncBody,                                                                                                                                                                                        
     DateRange,                                                                                                                                                                                       
@@ -60,7 +61,8 @@ tool_map = {
     "garmin.get_lactate_threshold": (get_lactate_threshold, DateBody),
     "garmin.get_intensity_minutes_data": (get_intensity_minutes, DateBody),
     "garmin.get_activities_range": (get_activities_range, DateRange),
-    "garmin.sync": (sync_daily_data, SyncBody)
+    "garmin.sync": (sync_daily_data, SyncBody),
+    "garmin.get_daily_weigh_ins": (get_daily_weigh_ins, DateBody)
 }
 
 
@@ -82,6 +84,7 @@ async def call_tool_generic(tool_call: ToolCall, client: GarminClient = Depends(
     try:
         if tool_name == "garmin.sync":                                                                                                                                                               
                  # sync_daily_data does not require the 'client' dependency
+            print("awaiting sync_daily_data")
             return await target_func(body)                                                                                                                                                          
         else:
             return await target_func(body, client)                                                                                                                                                  

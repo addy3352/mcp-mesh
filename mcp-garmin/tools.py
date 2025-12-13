@@ -20,5 +20,6 @@ def list_tools():
         {"name":"garmin.get_stress_data","description":"Stress summary","input_schema":{"type":"object","properties":{"date":{"type":"string","format":"date"}},"required":["date"]}},
         {"name":"garmin.get_lactate_threshold","description":"Lactate threshold","input_schema":{"type":"object","properties":{"date":{"type":"string","format":"date"}},"required":["date"]}},
         {"name":"garmin.get_intensity_minutes_data","description":"Intensity minutes","input_schema":{"type":"object","properties":{"date":{"type":"string","format":"date"}},"required":["date"]}},
-        {"name":"garmin.get_activities_range","description":"Activities for a date range (defaults to last 7 days if none)","input_schema":{"type":"object","properties":{"start_date":{"type":"string","format":"date"},"end_date":{"type":"string","format":"date"}}}}
+        {"name":"garmin.get_activities_range","description":"Activities for a date range (defaults to last 7 days if none)","input_schema":{"type":"object","properties":{"start_date":{"type":"string","format":"date"},"end_date":{"type":"string","format":"date"}}}},
+        {"name":"garmin.get_daily_weigh_ins","description":"Get daily weigh-ins for a given date","input_schema":{"type":"object","properties":{"date":{"type":"string","format":"date"}},"required":["date"]}}
     ]

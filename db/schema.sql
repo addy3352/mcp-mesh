@@ -17,6 +17,10 @@ CREATE TABLE IF NOT EXISTS garmin_daily (
 CREATE TABLE IF NOT EXISTS calories_daily (
   date TEXT PRIMARY KEY,
   calories INTEGER NOT NULL,
+  carbohydarate INTEGER NOT NULL,
+  protein INTEGER NOT NULL,
+  fat INTEGER NOT NULL,
+  fiber INTEGER NOT NULL,
   source TEXT DEFAULT 'nutrition-mcp',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -36,5 +40,14 @@ CREATE TABLE IF NOT EXISTS events (
   message TEXT,
   payload TEXT,
   delivered INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- API Keys for external access
+CREATE TABLE IF NOT EXISTS api_keys (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_name TEXT NOT NULL,      -- e.g., 'dashboard-app', 'mobile-client'
+  key_hash TEXT NOT NULL,         -- Store secure hash of the API key
+  scopes TEXT DEFAULT 'read',     -- e.g., 'read', 'write', 'admin'
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
